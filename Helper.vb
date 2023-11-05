@@ -1,4 +1,5 @@
 ﻿Imports System.Runtime.CompilerServices
+Imports DiscordRPC.Logging
 
 Public Class Helper
     Public Shared ReadOnly DictHalfFullKana As Dictionary(Of String, String) = New Dictionary(Of String, String)() From {
@@ -102,6 +103,27 @@ Public Class Helper
 
         Return str_Halfed
     End Function
+
+    ''' <summary>
+    ''' 콘솔 로깅용
+    ''' </summary>
+    ''' <param name="logMessage">로그 메세지</param>
+    ''' <param name="logLevel">로그 레벨</param>
+    Public Shared Sub Log(logMessage As String, logLevel As LogLevel)
+        Select Case logLevel
+            Case LogLevel.Info
+                Console.ForegroundColor = ConsoleColor.Green
+            Case LogLevel.Warning
+                Console.ForegroundColor = ConsoleColor.Yellow
+            Case LogLevel.Error
+                Console.ForegroundColor = ConsoleColor.Red
+        End Select
+
+        Console.WriteLine($"[{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name} {logLevel}]: {logMessage}")
+
+        ' 원래 콘솔 색상 복원
+        Console.ResetColor()
+    End Sub
 End Class
 
 Public Module StringExt

@@ -1,4 +1,6 @@
-﻿Public Class UmaResources
+﻿Imports DiscordRPC.Logging
+
+Public Class UmaResources
     Private Shared MainDB As SQLite3 = Nothing
 
     ''' <summary>
@@ -61,11 +63,11 @@
             texts = MainDB.Table.Copy()
 
             'Debug
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] DBLoad OK {MainDB.DBPath}")
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] text_data Load OK {textCount}")
+            Helper.Log($"DBLoad OK {MainDB.DBPath}", LogLevel.Info)
+            Helper.Log($"text_data Load OK {textCount}", LogLevel.Info)
         Catch ex As Exception
 
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] DBLoad error {ex}")
+            Helper.Log($"DBLoad error {ex}", LogLevel.Error)
             Return False
         End Try
 
@@ -75,10 +77,10 @@
     Public Shared Function releaseDB() As Boolean
         Try
             MainDB.Close()
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] DBClose OK {MainDB.DBPath}")
+            Helper.Log($"DBClose OK {MainDB.DBPath}", LogLevel.Info)
             Return True
         Catch ex As Exception
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] DBClose error {ex}")
+            Helper.Log($"DBClose error {ex}", LogLevel.Error)
             Return False
         End Try
 

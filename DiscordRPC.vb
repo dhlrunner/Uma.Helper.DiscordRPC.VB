@@ -9,6 +9,7 @@ Imports DiscordRPC
 Imports MessagePack
 Imports MessagePack.Resolvers
 Imports Microsoft.SqlServer.Server
+Imports DiscordRPC.Logging
 
 Public Class DiscordRPC
     Private Shared Discord As DiscordRpcClient
@@ -41,13 +42,14 @@ Public Class DiscordRPC
 
     <DllExport(CallingConvention.Cdecl)>
     Public Shared Sub initDB(ByVal dbpath As String)
-
+        Helper.Log("init db", LogLevel.Info)
         UmaResources.initDB(dbpath)
 
     End Sub
 
     <DllExport(CallingConvention.Cdecl)>
     Public Shared Sub releaseDB()
+        Helper.Log("db Release", LogLevel.Info)
         UmaResources.releaseDB()
     End Sub
 
@@ -66,7 +68,7 @@ Public Class DiscordRPC
         Dim url As Uri = New Uri(rawUrl)
 
         'Debug
-        Console.WriteLine($"[Uma.Helper.DiscordRPC] sz={dataSize}, URL={url.LocalPath}")
+        Helper.Log($"sz={dataSize}, URL={url.LocalPath}", LogLevel.Info)
 
         'deserialize msgpack data
 
@@ -92,11 +94,25 @@ Public Class DiscordRPC
                 Case "/umamusume/load/index"
                     'Console.WriteLine("Index")
                     mainUserData = data
-                    Console.WriteLine($"[Uma.Helper.DiscordRPC] set mainUserData {mainUserData.GetType()}")
+                    Helper.Log($"set mainUserData {mainUserData.GetType()}", LogLevel.Info)
 
                     Discord.SetPresence(New RichPresence() With {
                             .State = "메인 화면",
                             .Details = $"Trainer {Helper.FulltoHalfWidthKana(data("data")("user_info")("name"))}",
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                     })
+                '주크박스 렌덤
+                Case "/umamusume/jukebox/draw_random_request"
+                    Dim songName As String = Helper.FulltoHalfWidthKana(UmaResources.getText(16, data("data")("request_history")("music_id"), True))
+
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "메인 화면",
+                            .Details = $"♪{songName}",
                             .Timestamps = Timestamps.Now,
                             .Assets = New Assets() With {
                                 .LargeImageKey = "uma-logo",
@@ -116,6 +132,7 @@ Public Class DiscordRPC
                                 .SmallImageKey = "image_small"
                             }
                      })
+
             '라이브 시작
                 Case "/umamusume/live_theater/live_start"
                     Dim name = UmaResources.getText(16, data("data")("live_theater_save_info")("music_id"), True)
@@ -148,10 +165,107 @@ Public Class DiscordRPC
                                 .SmallImageKey = "image_small"
                             }
                       })
+                '팀대항전 첫화면
+                Case "/umamusume/team_stadium/index"
+                    Discord.SetPresence(New RichPresence() With
+                            {
+                                .State = "팀 대항전",
+                                .Details = String.Format("Idle"),
+                                .Timestamps = Timestamps.Now,
+                                .Assets = New Assets() With
+                                {
+                                    .LargeImageKey = "uma-logo",
+                                    .LargeImageText = "ウマ娘 プリティーダービー",
+                                    .SmallImageKey = "image_small"
+                                }
+                            })
+
+                '팀대항전 상대선택
+                Case "/umamusume/team_stadium/opponent_list"
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "팀 대항전",
+                            .Details = "대전 상대 선택 중",
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                      })
+
+                '상대결정 직후
+                Case "/umamusume/team_stadium/decide_frame_order"
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "팀 대항전",
+                            .Details = $"트레이너 {Helper.FulltoHalfWidthKana(data("data")("opponent_info_copy")("user_info")("name"))}와 대전 중",
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                      })
+
+                '결과화면
+                Case "/umamusume/team_stadium/all_race_end"
+                    Dim winType As Byte = data("data")("final_win_type")
+                    Dim isHighscore As Boolean = data("data")("is_update_high_score")
+                    Dim score As Integer = data("data")("total_score_info")("final_total_score")
+                    Dim ranking As Integer = data("data")("ranking")("rank")
+                    Dim classNum As Integer = data("data")("ranking")("team_class")
+
+                    Dim retStr As String = String.Empty
+
+                    If winType = 1 Then
+                        retStr = $"승리! "
+                    End If
+
+                    retStr = retStr & $"{score}점"
+
+                    If isHighscore Then
+                        retStr = retStr & "↑,"
+                    End If
+                    retStr = retStr & $" {ranking}위"
+
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "팀 대항전",
+                            .Details = retStr,
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                      })
+
+                '데일리 레이스
+                Case "/umamusume/daily_race/index"
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "데일리 레이스",
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                      })
+
+                '육성 시나리오 선택 화면
+                Case "/umamusume/pre_single_mode/index"
+                    Discord.SetPresence(New RichPresence() With {
+                            .State = "육성 시나리오 선택 중",
+                            .Details = "Idle",
+                            .Timestamps = Timestamps.Now,
+                            .Assets = New Assets() With {
+                                .LargeImageKey = "uma-logo",
+                                .LargeImageText = "ウマ娘 プリティーダービー",
+                                .SmallImageKey = "image_small"
+                            }
+                      })
             End Select
         Catch ex As Exception
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] processRPC exception {ex}")
-            File.WriteAllBytes("error.msgpack", msgPack)
+            Helper.Log($"processRPC exception {ex}", LogLevel.Error)
+            'File.WriteAllBytes("error.msgpack", msgPack)
         End Try
 
     End Sub
@@ -160,7 +274,7 @@ Public Class DiscordRPC
     <DllExport(CallingConvention.Cdecl)>
     Public Shared Sub setSceneID(ByVal sceneID As UmaResources.SceneId)
         'Debug
-        Console.WriteLine($"[Uma.Helper.DiscordRPC] setSceneID={sceneID}")
+        Helper.Log($"setSceneID={sceneID}", LogLevel.Info)
 
         If Not ReferenceEquals(Nothing, mainUserData) Then
             Select Case sceneID
@@ -178,7 +292,7 @@ Public Class DiscordRPC
                      })
             End Select
         Else
-            Console.WriteLine($"[Uma.Helper.DiscordRPC] mainUserData is null!")
+            Helper.Log("mainUserData is null!", LogLevel.Warning)
         End If
 
     End Sub

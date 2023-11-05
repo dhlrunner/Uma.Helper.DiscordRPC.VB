@@ -1,6 +1,7 @@
 ﻿Imports System
 Imports System.Collections.Generic
 Imports System.Data
+Imports DiscordRPC.Logging
 Imports Microsoft.Data.Sqlite
 
 ''' <summary>
@@ -69,7 +70,7 @@ Public Class SQLite3
 
                             parameters.Clear() '끝나면 클리어
                         Catch __unusedConstraintException1__ As ConstraintException
-                            Console.WriteLine(String.Format("null value detected!"))
+                            Helper.Log("DB) null value detected!", LogLevel.Error)
                             'Console.WriteLine("null value detected!");
                             parameters.Clear()
                         End Try
@@ -87,38 +88,37 @@ Public Class SQLite3
 
             End If
         Catch ex As Exception
-            Console.WriteLine("Error while excuting SQL {0}", ex)
+            Helper.Log($"DB) Error while excuting SQL {ex}", LogLevel.Error)
             Return -1
         End Try
 
     End Function
+
     ''' <summary>
-    ''' Bind 함수 설정
+    ''' 바인드 값 설정 밎 가져오기
     ''' </summary>
-    ''' <param name="bindname">Bind 함수 이름</param>
-    ''' <param name="data">들어갈 데이터</param>
-    Public Sub Bind(ByVal bindname As String, ByVal data As Object)
-        For i = 0 To parameters.Count - 1
-            If parameters(i).ParameterName Is bindname Then
-                parameters(i).Value = data
-                Return
-            End If
-        Next
-        parameters.Add(New SqliteParameter(bindname, data))
-    End Sub
-    ''' <summary>
-    ''' 현재 설정된 바인드 함수 값을 반환
-    ''' </summary>
-    ''' <param name="bindname">바인드 함수 이름</param>
-    ''' <returns>해당하는 바인드 함수가 있으면 그 함수의 값, 없으면 null</returns>
-    Public Function GetBind(ByVal bindname As String) As Object
-        For i = 0 To parameters.Count - 1
-            If parameters(i).ParameterName Is bindname Then
-                Return parameters(i).Value
-            End If
-        Next
-        Return Nothing
-    End Function
+    ''' <param name="bindname">바인드 함수명</param>
+    ''' <returns></returns>
+    Public Property Bind(ByVal bindname As String) As Object
+        Get
+            For i = 0 To parameters.Count - 1
+                If parameters(i).ParameterName Is bindname Then
+                    Return parameters(i).Value
+                End If
+            Next
+            Return Nothing
+        End Get
+        Set(value)
+            For i = 0 To parameters.Count - 1
+                If parameters(i).ParameterName Is bindname Then
+                    parameters(i).Value = value
+                    Return
+                End If
+            Next
+            parameters.Add(New SqliteParameter(bindname, value))
+        End Set
+    End Property
+
     ''' <summary>
     ''' 설정되어 있는 모든 바인드 함수 클리어(제거)
     ''' </summary>
