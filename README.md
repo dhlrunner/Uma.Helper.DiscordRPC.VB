@@ -1,4 +1,4 @@
-# Uma.Helper.DiscordRPC.VB
+# (WIP) Uma.Helper.DiscordRPC.VB
  Discord RPC Plugin for umamusume (DMM)
 
 ### How to use?
